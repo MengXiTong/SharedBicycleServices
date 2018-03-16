@@ -1,0 +1,5 @@
+D:\GitHub\SharedBicycleServices\SharedBicycleServices\SharedBicycleServices\bin\SharedBicycleServices.dll
+D:\GitHub\SharedBicycleServices\SharedBicycleServices\SharedBicycleServices\bin\SharedBicycleServices.pdb
+D:\GitHub\SharedBicycleServices\SharedBicycleServices\SharedBicycleServices\obj\Debug\SharedBicycleServices.csprojResolveAssemblyReference.cache
+D:\GitHub\SharedBicycleServices\SharedBicycleServices\SharedBicycleServices\obj\Debug\SharedBicycleServices.dll
+D:\GitHub\SharedBicycleServices\SharedBicycleServices\SharedBicycleServices\obj\Debug\SharedBicycleServices.pdb
