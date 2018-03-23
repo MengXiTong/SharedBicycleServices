@@ -4,6 +4,7 @@ using System.Linq;
 using System.Web;
 using System.Data.SqlClient;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace SharedBicycleServices
 {
@@ -15,38 +16,37 @@ namespace SharedBicycleServices
 
         public void ProcessRequest(HttpContext context)
         {
+            context.Response.ContentType = "text/plain";
             try
             {
-                context.Response.ContentType = "text/plain";
                 SqlConnection con = new SqlConnection("server=localhost;database=SharedBicycle;user id=sa;password=123456");
                 SqlCommand cmd = new SqlCommand();
                 cmd.Connection = con;
-                StreamReader sr = new StreamReader(context.Request.InputStream);
-                string data = sr.ReadToEnd().ToLower();
-                //string data1 = context.Request.QueryString["age"];
+                con.Open();
                 if (context.Request.HttpMethod.ToUpper() == "GET")
                 {
-                    cmd.CommandText = "select * from tblUser";
-                    con.Open();
+                    String userID = context.Request.QueryString["UserID"];
+                    String pwd = context.Request.QueryString["Passward"];
+                    cmd.CommandText = "select * from tblUser where tblUser.UserID = '" + userID + "'";
                     SqlDataReader dr = cmd.ExecuteReader();
                     String str = "";
-                    while (dr.Read())
-                    {
-                        for (int i = 0; i < dr.FieldCount; i++)
+                    if(dr.Read()){
+                        str = dr["Passward"].ToString();
+                        if (str.Equals(pwd))
                         {
-                            str += dr[i].ToString() + ",";
+                            context.Response.Write(true);
+                            dr.Close();
+                            con.Close();
+                            return;
                         }
                     }
+                    context.Response.Write(false);
                     dr.Close();
-                    con.Close();
-                    context.Response.Write(str);
-                    //context.Response.Write("参数1"+data);
-                    //context.Response.Write("参数2"+data1);
                 }
+                con.Close();
             }
             catch (Exception error)
             {
-                context.Response.ContentType = "text/plain";
                 context.Response.Write("false:" + error.ToString());
             }
         }
