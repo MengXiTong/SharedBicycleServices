@@ -11,6 +11,13 @@ namespace SharedBicycleServices
     /// <summary>
     /// LoginHandler 的摘要说明
     /// </summary>
+    /// 
+
+    class Result
+    {
+        public Boolean status { get; set; }
+    }
+
     public class LoginHandler : IHttpHandler
     {
 
@@ -30,18 +37,19 @@ namespace SharedBicycleServices
                     cmd.CommandText = "select * from tblUser where tblUser.UserID = '" + userID + "'";
                     SqlDataReader dr = cmd.ExecuteReader();
                     String str = "";
-                    if(dr.Read()){
+                    Result result = new Result();
+                    result.status = false;
+                    if (dr.Read())
+                    {
                         str = dr["Passward"].ToString();
                         if (str.Equals(pwd))
                         {
-                            context.Response.Write(true);
-                            dr.Close();
-                            con.Close();
-                            return;
+                            result.status = true;
                         }
                     }
-                    context.Response.Write(false);
+                    context.Response.Write(JsonConvert.SerializeObject(result));
                     dr.Close();
+                    con.Close();
                 }
                 con.Close();
             }

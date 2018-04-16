@@ -65,9 +65,22 @@ namespace SharedBicycleServices
                         user.Photo = dr["Photo"].ToString();
                         user.Balance = dr["Balance"].ToString();
                         user.Deposit = dr["Deposit"].ToString();
+                        if (!user.Photo.Equals(String.Empty))
+                        {
+                            user.Photo = ImgToBase64String(user.Photo);
+                        }
                         context.Response.Write(JsonConvert.SerializeObject(user));
                     }
                     dr.Close();
+                }
+                if (context.Request.HttpMethod.ToUpper() == "POST")
+                {
+                    StreamReader sr = new StreamReader(context.Request.InputStream);
+                    string data = sr.ReadToEnd();
+                    Param param = JsonConvert.DeserializeObject<Param>(data);
+                    cmd.CommandText = "insert into tblUser values(@UserID,@Passward,@Name)";
+                    cmd.Parameters.AddWithValue("@UserID", param.user.UserID);
+                    cmd.ExecuteNonQuery();
                 }
                 if (context.Request.HttpMethod.ToUpper() == "PUT")
                 {
@@ -76,42 +89,62 @@ namespace SharedBicycleServices
                     Param param = JsonConvert.DeserializeObject<Param>(data);
                     switch (param.type)
                     {
-                        //照片
-                        case "image":
-                            context.Response.Write(Base64StringToImage(param.user.Photo, param.user.UserID));
-                            //cmd.CommandText = "update tblUser set Photo='" + param.user.Photo + "' where UserID='" + param.user.UserID + "'";
-                            break;
                         //个人信息
                         case "update":
-                            cmd.CommandText = "update tblUser set Name='" + param.user.Name + "', Sex='" + param.user.Sex + "', Birthday='" + param.user.Birthday + "', Phone='" + param.user.Phone + "', Photo='" + param.user.Photo + "' where UserID='" + param.user.UserID + "'";
+                            if (Base64StringToImage(param.user.Photo, param.user.UserID))
+                            {
+                                cmd.CommandText = "update tblUser set Name='" + param.user.Name + "', Sex='" + param.user.Sex + "', Birthday='" + param.user.Birthday + "', Phone='" + param.user.Phone + "', Photo='" + @"d:\image\" + param.user.UserID + ".jpg'" + "' where UserID='" + param.user.UserID + "'";
+                                cmd.ExecuteNonQuery();
+                                context.Response.Write(true);
+                            }
+                            else
+                            {
+                                context.Response.Write(false);
+                            }
                             break;
                         //密码
                         case "passward":
                             cmd.CommandText = "update tblUser set Passward = '" + param.user.Passward + "' where UserID = '" + param.user.UserID + "'";
+                            cmd.ExecuteNonQuery();
                             break;
                         //身份
-                        case "identityID":
+                        case "identity":
                             cmd.CommandText = "update tblUser set IdentityID = '" + param.user.IdentityID + "' where UserID = '" + param.user.UserID + "'";
+                            cmd.ExecuteNonQuery();
                             break;
-                        //信用分
-                        case "creditScore":
-                            cmd.CommandText = "update tblUser set CreditScore = '" + param.user.CreditScore + "' where UserID = '" + param.user.UserID + "'";
+                        //违规处理,目前是当用户用车时间超过24小时时，出现违规处理，扣除信用分5分。
+                        case "illegal":
+                            cmd.CommandText = "update tblUser set CreditScore = CreditScore-5 where UserID = '" + param.user.UserID + "'";
+                            cmd.ExecuteNonQuery();
+                            cmd.CommandText = "insert into tblIllegal(UserID,IllegalContent,DeductCreditScore,IllegalTime) values('" + param.user.UserID + "','" + "未在规定时间内结束用车" + "','" + 5 + "','" + DateTime.Now.ToString() + "')";
+                            cmd.ExecuteNonQuery();
+                            context.Response.Write(true);
                             break;
-                        //充值
-                        case "recharge":
-                            cmd.CommandText = "update tblUser set Balance = '" + param.user.Balance + "' where UserID = '" + param.user.UserID + "'";
-                            break;
-                        //消费
-                        case "consumption":
-                            cmd.CommandText = "update tblUser set Balance = '" + param.user.Balance + "' where UserID = '" + param.user.UserID + "'";
+                        //充值&消费----------充值传正数，消费传负数，每完成一次消费添加信用分1分。
+                        case "balance":
+                            cmd.CommandText = "update tblUser set Balance = Balance + " + float.Parse(param.user.Balance) + " where UserID = '" + param.user.UserID + "'";
+                            cmd.ExecuteNonQuery();
+                            int detailedTypeID = 2;
+                            float sum = Math.Abs(float.Parse(param.user.Balance));
+                            if (float.Parse(param.user.Balance) < 0)
+                            {
+                                detailedTypeID = 1;
+                                cmd.CommandText = "update tblUser set CreditScore = CreditScore+1 where UserID = '" + param.user.UserID + "'";
+                                cmd.ExecuteNonQuery();
+                            }
+                            cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + param.user.UserID + "','" + detailedTypeID + "','" + sum + "','" + DateTime.Now.ToString() + "')";
+                            cmd.ExecuteNonQuery();
+                            context.Response.Write(true);
                             break;
                         //押金
                         case "deposit":
                             cmd.CommandText = "update tblUser set Deposit = '" + param.user.Deposit + "' where UserID = '" + param.user.UserID + "'";
+                            cmd.ExecuteNonQuery();
+                            cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + param.user.UserID + "','" + 3 + "','" + param.user.Deposit + "','" + DateTime.Now.ToString() + "')";
+                            cmd.ExecuteNonQuery();
+                            context.Response.Write(true);
                             break;
                     }
-                    //cmd.ExecuteNonQuery();
-                    
                 }
                 con.Close();
             }
@@ -151,7 +184,7 @@ namespace SharedBicycleServices
                 byte[] arr = Convert.FromBase64String(strbase64);
                 MemoryStream ms = new MemoryStream(arr);
                 Bitmap bmp = new Bitmap(ms);
-                bmp.Save(@"d:\image\"+userId+".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+                bmp.Save(@"d:\image\" + userId + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
                 ms.Close();
                 return true;
             }
