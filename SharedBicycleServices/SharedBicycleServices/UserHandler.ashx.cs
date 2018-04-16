@@ -59,7 +59,7 @@ namespace SharedBicycleServices
                         user.Passward = dr["Passward"].ToString();
                         user.Name = dr["Name"].ToString();
                         user.Sex = dr["Sex"].ToString();
-                        user.Birthday = dr["Birthday"].ToString();
+                        user.Birthday = (Convert.ToDateTime(dr["Birthday"].ToString())).ToString("yyyy-MM-dd");
                         user.IdentityID = dr["IdentityID"].ToString();
                         user.IdentityName = dr["IdentityName"].ToString();
                         user.Phone = dr["Phone"].ToString();
