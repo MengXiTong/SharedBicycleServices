@@ -21,6 +21,7 @@ namespace SharedBicycleServices
         public String Sex { get; set; }
         public String Birthday { get; set; }
         public String IdentityID { get; set; }
+        public String IdentityName { get; set; }
         public String Phone { get; set; }
         public String CreditScore { get; set; }
         public String Photo { get; set; }
@@ -49,7 +50,7 @@ namespace SharedBicycleServices
                 if (context.Request.HttpMethod.ToUpper() == "GET")
                 {
                     String userID = context.Request.QueryString["UserID"];
-                    cmd.CommandText = "select * from tblUser where tblUser.UserID = '" + userID + "'";
+                    cmd.CommandText = "select UserID,Passward,Name,Sex,Birthday,tblUser.IdentityID,IdentityName,Phone,CreditScore,Photo,Balance,Deposit from tblUser,tblIdentity where tblUser.UserID = '" + userID + "' and tblUser.IdentityID = tblIdentity.IdentityID";
                     SqlDataReader dr = cmd.ExecuteReader();
                     if (dr.Read())
                     {
@@ -60,6 +61,7 @@ namespace SharedBicycleServices
                         user.Sex = dr["Sex"].ToString();
                         user.Birthday = dr["Birthday"].ToString();
                         user.IdentityID = dr["IdentityID"].ToString();
+                        user.IdentityName = dr["IdentityName"].ToString();
                         user.Phone = dr["Phone"].ToString();
                         user.CreditScore = dr["CreditScore"].ToString();
                         user.Photo = dr["Photo"].ToString();
