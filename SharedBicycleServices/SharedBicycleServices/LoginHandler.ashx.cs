@@ -16,6 +16,7 @@ namespace SharedBicycleServices
     class Result
     {
         public Boolean status { get; set; }
+        public String message { get; set; }
     }
 
     public class LoginHandler : IHttpHandler
@@ -23,7 +24,9 @@ namespace SharedBicycleServices
 
         public void ProcessRequest(HttpContext context)
         {
-            context.Response.ContentType = "text/plain";
+            context.Response.ContentType = "application/json";
+            Result result = new Result();
+            result.status = false;
             try
             {
                 SqlConnection con = new SqlConnection("server=localhost;database=SharedBicycle;user id=sa;password=123456");
@@ -37,8 +40,6 @@ namespace SharedBicycleServices
                     cmd.CommandText = "select * from tblUser where tblUser.UserID = '" + userID + "'";
                     SqlDataReader dr = cmd.ExecuteReader();
                     String str = "";
-                    Result result = new Result();
-                    result.status = false;
                     if (dr.Read())
                     {
                         str = dr["Passward"].ToString();
@@ -55,7 +56,8 @@ namespace SharedBicycleServices
             }
             catch (Exception error)
             {
-                context.Response.Write("false:" + error.ToString());
+                result.message = error.ToString();
+                context.Response.Write(JsonConvert.SerializeObject(result));
             }
         }
 

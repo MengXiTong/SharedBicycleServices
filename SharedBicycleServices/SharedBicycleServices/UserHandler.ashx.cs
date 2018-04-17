@@ -40,7 +40,9 @@ namespace SharedBicycleServices
 
         public void ProcessRequest(HttpContext context)
         {
-            context.Response.ContentType = "text/plain";
+            context.Response.ContentType = "application/json";
+            Result result = new Result();
+            result.status = false;
             try
             {
                 SqlConnection con = new SqlConnection("server=localhost;database=SharedBicycle;user id=sa;password=123456");
@@ -82,7 +84,12 @@ namespace SharedBicycleServices
                     Param param = JsonConvert.DeserializeObject<Param>(data);
                     cmd.CommandText = "insert into tblUser values(@UserID,@Passward,@Name)";
                     cmd.Parameters.AddWithValue("@UserID", param.user.UserID);
-                    cmd.ExecuteNonQuery();
+                    if (Base64StringToImage(param.user.Photo, param.user.UserID))
+                    {
+                        cmd.ExecuteNonQuery();
+                        result.status = true;
+                    }
+                    context.Response.Write(JsonConvert.SerializeObject(result));
                 }
                 if (context.Request.HttpMethod.ToUpper() == "PUT")
                 {
@@ -91,28 +98,54 @@ namespace SharedBicycleServices
                     Param param = JsonConvert.DeserializeObject<Param>(data);
                     switch (param.type)
                     {
-                        //个人信息
-                        case "update":
+                        //头像
+                        case "photo":
                             if (Base64StringToImage(param.user.Photo, param.user.UserID))
                             {
-                                cmd.CommandText = "update tblUser set Name='" + param.user.Name + "', Sex='" + param.user.Sex + "', Birthday='" + param.user.Birthday + "', Phone='" + param.user.Phone + "', Photo='" + @"d:\image\" + param.user.UserID + ".jpg'" + "' where UserID='" + param.user.UserID + "'";
+                                cmd.CommandText = "update tblUser set Photo='" + @"d:\image\" + param.user.UserID + ".jpg' where UserID='" + param.user.UserID + "'";
                                 cmd.ExecuteNonQuery();
-                                context.Response.Write(true);
+                                result.status = true;
                             }
                             else
                             {
-                                context.Response.Write(false);
+                                result.message = "图片保存到本地失败";
                             }
+                            break;
+                        //姓名
+                        case "name":
+                            cmd.CommandText = "update tblUser set Name='"+ param.user.Name +"' where UserID='" + param.user.UserID + "'";
+                            cmd.ExecuteNonQuery();
+                            result.status = true;
+                            break;
+                        //性别
+                        case "sex":
+                            cmd.CommandText = "update tblUser set Sex='" + param.user.Sex + "' where UserID='" + param.user.UserID + "'";
+                            cmd.ExecuteNonQuery();
+                            result.status = true;
+                            break;
+                        //生日
+                        case "birthday":
+                            cmd.CommandText = "update tblUser set Birthday='" + param.user.Birthday + "' where UserID='" + param.user.UserID + "'";
+                            cmd.ExecuteNonQuery();
+                            result.status = true;
+                            break;
+                        //手机号
+                        case "phone":
+                            cmd.CommandText = "update tblUser set Phone='" + param.user.Phone + "' where UserID='" + param.user.UserID + "'";
+                            cmd.ExecuteNonQuery();
+                            result.status = true;
                             break;
                         //密码
                         case "passward":
                             cmd.CommandText = "update tblUser set Passward = '" + param.user.Passward + "' where UserID = '" + param.user.UserID + "'";
                             cmd.ExecuteNonQuery();
+                            result.status = true;
                             break;
                         //身份
                         case "identity":
                             cmd.CommandText = "update tblUser set IdentityID = '" + param.user.IdentityID + "' where UserID = '" + param.user.UserID + "'";
                             cmd.ExecuteNonQuery();
+                            result.status = true;
                             break;
                         //违规处理,目前是当用户用车时间超过24小时时，出现违规处理，扣除信用分5分。
                         case "illegal":
@@ -120,7 +153,7 @@ namespace SharedBicycleServices
                             cmd.ExecuteNonQuery();
                             cmd.CommandText = "insert into tblIllegal(UserID,IllegalContent,DeductCreditScore,IllegalTime) values('" + param.user.UserID + "','" + "未在规定时间内结束用车" + "','" + 5 + "','" + DateTime.Now.ToString() + "')";
                             cmd.ExecuteNonQuery();
-                            context.Response.Write(true);
+                            result.status = true;
                             break;
                         //充值&消费----------充值传正数，消费传负数，每完成一次消费添加信用分1分。
                         case "balance":
@@ -136,7 +169,7 @@ namespace SharedBicycleServices
                             }
                             cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + param.user.UserID + "','" + detailedTypeID + "','" + sum + "','" + DateTime.Now.ToString() + "')";
                             cmd.ExecuteNonQuery();
-                            context.Response.Write(true);
+                            result.status = true;
                             break;
                         //押金
                         case "deposit":
@@ -144,15 +177,17 @@ namespace SharedBicycleServices
                             cmd.ExecuteNonQuery();
                             cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + param.user.UserID + "','" + 3 + "','" + param.user.Deposit + "','" + DateTime.Now.ToString() + "')";
                             cmd.ExecuteNonQuery();
-                            context.Response.Write(true);
+                            result.status = true;
                             break;
                     }
+                    context.Response.Write(JsonConvert.SerializeObject(result));
                 }
                 con.Close();
             }
             catch (Exception error)
             {
-                context.Response.Write("false:" + error.ToString());
+                result.message = error.ToString();
+                context.Response.Write(JsonConvert.SerializeObject(result));
             }
         }
 
