@@ -81,14 +81,40 @@ namespace SharedBicycleServices
                 {
                     StreamReader sr = new StreamReader(context.Request.InputStream);
                     string data = sr.ReadToEnd();
-                    Param param = JsonConvert.DeserializeObject<Param>(data);
-                    cmd.CommandText = "insert into tblUser values(@UserID,@Passward,@Name)";
-                    cmd.Parameters.AddWithValue("@UserID", param.user.UserID);
-                    if (Base64StringToImage(param.user.Photo, param.user.UserID))
-                    {
-                        cmd.ExecuteNonQuery();
-                        result.status = true;
+                    User user = JsonConvert.DeserializeObject<User>(data);
+                    cmd.CommandText = "select * from tblUser Where UserID='"+user.UserID+"'";
+                    SqlDataReader dr = cmd.ExecuteReader();
+                    if(dr.Read()){
+                        result.message = "该用户已注册";
+                        context.Response.Write(JsonConvert.SerializeObject(result));
+                        dr.Close();
+                        return;
                     }
+                    dr.Close();
+                    cmd.CommandText = "insert into tblUser(UserID,Passward,Name,Sex,Birthday,IdentityID,Phone,CreditScore,Photo,Balance,Deposit) values(@UserID,@Passward,@Name,@Sex,@Birthday,@IdentityID,@Phone,@CreditScore,@Photo,@Balance,@Deposit)";
+                    cmd.Parameters.AddWithValue("@UserID", user.UserID);
+                    cmd.Parameters.AddWithValue("@Passward", user.Passward);
+                    cmd.Parameters.AddWithValue("@Name", user.Name);
+                    cmd.Parameters.AddWithValue("@Sex", user.Sex);
+                    cmd.Parameters.AddWithValue("@Birthday", user.Birthday);
+                    cmd.Parameters.AddWithValue("@IdentityID", 1);
+                    cmd.Parameters.AddWithValue("@Phone", user.Phone);
+                    cmd.Parameters.AddWithValue("@CreditScore", 100);
+                    cmd.Parameters.AddWithValue("@Balance", 0);
+                    cmd.Parameters.AddWithValue("@Deposit", 0);
+                    if (user.Photo.Equals(""))
+                    {
+                        cmd.Parameters.AddWithValue("@Photo", "");
+                    }
+                    else
+                    {
+                        if (Base64StringToImage(user.Photo, user.UserID))
+                        {
+                            cmd.Parameters.AddWithValue("@Photo", @"d:\image\" + user.UserID + ".jpg");
+                        }
+                    }
+                    cmd.ExecuteNonQuery();
+                    result.status = true;
                     context.Response.Write(JsonConvert.SerializeObject(result));
                 }
                 if (context.Request.HttpMethod.ToUpper() == "PUT")
