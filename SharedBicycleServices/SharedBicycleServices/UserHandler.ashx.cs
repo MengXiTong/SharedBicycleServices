@@ -80,7 +80,7 @@ namespace SharedBicycleServices
                 if (context.Request.HttpMethod.ToUpper() == "POST")
                 {
                     StreamReader sr = new StreamReader(context.Request.InputStream);
-                    string data = sr.ReadToEnd();
+                    String data = sr.ReadToEnd();
                     User user = JsonConvert.DeserializeObject<User>(data);
                     cmd.CommandText = "select * from tblUser Where UserID='"+user.UserID+"'";
                     SqlDataReader dr = cmd.ExecuteReader();
@@ -120,7 +120,7 @@ namespace SharedBicycleServices
                 if (context.Request.HttpMethod.ToUpper() == "PUT")
                 {
                     StreamReader sr = new StreamReader(context.Request.InputStream);
-                    string data = sr.ReadToEnd();
+                    String data = sr.ReadToEnd();
                     Param param = JsonConvert.DeserializeObject<Param>(data);
                     switch (param.type)
                     {
@@ -218,7 +218,7 @@ namespace SharedBicycleServices
         }
 
         //图片转为base64编码的字符串
-        protected string ImgToBase64String(string Imagefilename)
+        protected String ImgToBase64String(String Imagefilename)
         {
             try
             {
