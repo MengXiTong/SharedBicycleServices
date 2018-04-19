@@ -181,19 +181,11 @@ namespace SharedBicycleServices
                             cmd.ExecuteNonQuery();
                             result.status = true;
                             break;
-                        //充值&消费----------充值传正数，消费传负数，每完成一次消费添加信用分1分。
+                        //充值
                         case "balance":
                             cmd.CommandText = "update tblUser set Balance = Balance + " + float.Parse(param.user.Balance) + " where UserID = '" + param.user.UserID + "'";
                             cmd.ExecuteNonQuery();
-                            int detailedTypeID = 2;
-                            float sum = Math.Abs(float.Parse(param.user.Balance));
-                            if (float.Parse(param.user.Balance) < 0)
-                            {
-                                detailedTypeID = 1;
-                                cmd.CommandText = "update tblUser set CreditScore = CreditScore+1 where UserID = '" + param.user.UserID + "'";
-                                cmd.ExecuteNonQuery();
-                            }
-                            cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + param.user.UserID + "','" + detailedTypeID + "','" + sum + "','" + DateTime.Now.ToString() + "')";
+                            cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + param.user.UserID + "','" + 2 + "','" + param.user.Balance + "','" + DateTime.Now.ToString() + "')";
                             cmd.ExecuteNonQuery();
                             result.status = true;
                             break;
