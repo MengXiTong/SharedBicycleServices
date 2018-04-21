@@ -73,8 +73,10 @@ namespace SharedBicycleServices
                         {
                             user.Photo = ImgToBase64String(user.Photo);
                         }
-                        context.Response.Write(JsonConvert.SerializeObject(user));
+                        result.user = user;
+                        result.status = true;
                     }
+                    context.Response.Write(JsonConvert.SerializeObject(result));
                     dr.Close();
                 }
                 if (context.Request.HttpMethod.ToUpper() == "POST")

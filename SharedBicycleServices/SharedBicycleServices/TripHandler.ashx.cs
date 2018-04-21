@@ -11,43 +11,37 @@ namespace SharedBicycleServices
     /// <summary>
     /// TripHandler 的摘要说明
     /// </summary>
+
+    class Trip
+    {
+        public String TripID { get; set; }
+        public String UserID { get; set; }
+        public String BikeID { get; set; }
+        public String StartTime { get; set; }
+        public String EndTime { get; set; }
+        public String Consume { get; set; }
+        public String Position { get; set; }
+        public String State { get; set; }
+        public String CouponID { get; set; }
+    }
+
+    class Bike
+    {
+        public String BikeID { get; set; }
+        public String ModelID { get; set; }
+        public String StateID { get; set; }
+        public String BikeLongitude { get; set; }
+        public String BikeLatitude { get; set; }
+    }
+
+    class TripParam
+    {
+        public String type { get; set; }
+        public Trip trip { get; set; }
+    }
+
     public class TripHandler : IHttpHandler
     {
-        class Trip
-        {
-            public String TripID { get; set; }
-            public String UserID { get; set; }
-            public String BikeID { get; set; }
-            public String StartTime { get; set; }
-            public String EndTime { get; set; }
-            public String Consume { get; set; }
-            public String Position { get; set; }
-            public String State { get; set; }
-            public String CouponID { get; set; }
-        }
-
-        class Bike
-        {
-            public String BikeID { get; set; }
-            public String ModelID { get; set; }
-            public String StateID { get; set; }
-            public String BikeLongitude { get; set; }
-            public String BikeLatitude { get; set; }
-        }
-
-        class TripState
-        {
-            //state三种状态：unfinish/defray/finish
-            public String state { get; set; }
-            public Trip trip { get; set; }
-        }
-
-        class TripParam
-        {
-            public String type { get; set; }
-            public Trip trip { get; set; }
-        }
-
         public void ProcessRequest(HttpContext context)
         {
             context.Response.ContentType = "application/json";
@@ -64,21 +58,22 @@ namespace SharedBicycleServices
                     String userID = context.Request.QueryString["UserID"];
                     cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + userID + "' order by TripID DESC";
                     SqlDataReader dr = cmd.ExecuteReader();
-                    TripState tripState = new TripState();
-                    tripState.state = "finish";
+                    Trip trip = new Trip();
+                    trip.State = "finish";
                     if (dr.Read())
                     {
-                        tripState.trip.TripID = dr["TripID"].ToString();
-                        tripState.trip.UserID = dr["UserID"].ToString();
-                        tripState.trip.BikeID = dr["BikeID"].ToString();
-                        tripState.trip.StartTime = dr["StartTime"].ToString();
-                        tripState.trip.EndTime = dr["EndTime"].ToString();
-                        tripState.trip.Consume = dr["Consume"].ToString();
-                        tripState.trip.Position = dr["Position"].ToString();
-                        tripState.trip.State = dr["State"].ToString();
-                        tripState.state = tripState.trip.State;
+                        trip.TripID = dr["TripID"].ToString();
+                        trip.UserID = dr["UserID"].ToString();
+                        trip.BikeID = dr["BikeID"].ToString();
+                        trip.StartTime = dr["StartTime"].ToString();
+                        trip.EndTime = dr["EndTime"].ToString();
+                        trip.Consume = dr["Consume"].ToString();
+                        trip.Position = dr["Position"].ToString();
+                        trip.State = dr["State"].ToString();
                     }
-                    context.Response.Write(JsonConvert.SerializeObject(tripState));
+                    result.trip = trip;
+                    result.status = true;
+                    context.Response.Write(JsonConvert.SerializeObject(result));
                     dr.Close();
                 }
                 if (context.Request.HttpMethod.ToUpper() == "POST")
@@ -86,11 +81,12 @@ namespace SharedBicycleServices
                     StreamReader sr = new StreamReader(context.Request.InputStream);
                     String data = sr.ReadToEnd();
                     Trip trip = JsonConvert.DeserializeObject<Trip>(data);
+                    trip.State = "unfinish";
                     cmd.CommandText = "insert into tblTrip(UserID,BikeID,StartTime,State) values(@UserID,@BikeID,@StartTime,@State)";
                     cmd.Parameters.AddWithValue("@UserID", trip.UserID);
                     cmd.Parameters.AddWithValue("@BikeID", trip.BikeID);
                     cmd.Parameters.AddWithValue("@StartTime", trip.StartTime);
-                    cmd.Parameters.AddWithValue("@State", "unfinish");
+                    cmd.Parameters.AddWithValue("@State", trip.State);
                     cmd.ExecuteNonQuery();
                     cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + trip.UserID + "' order by TripID DESC";
                     SqlDataReader dr = cmd.ExecuteReader();
@@ -98,7 +94,9 @@ namespace SharedBicycleServices
                     {
                         trip.TripID = dr["TripID"].ToString();
                     }
-                    context.Response.Write(JsonConvert.SerializeObject(trip));
+                    result.trip = trip;
+                    result.status = true;
+                    context.Response.Write(JsonConvert.SerializeObject(result));
                     dr.Close();
                 }
                 if (context.Request.HttpMethod.ToUpper() == "PUT")
@@ -125,9 +123,10 @@ namespace SharedBicycleServices
                         //结束行程
                         case "end":
                             {
+                                tripParam.trip.State = "defray";
                                 cmd.CommandText = "update tblTrip set State=@State where tblTrip.TripID=@TripID";
                                 cmd.Parameters.AddWithValue("@TripID", tripParam.trip.TripID);
-                                cmd.Parameters.AddWithValue("@State", "defray");
+                                cmd.Parameters.AddWithValue("@State", tripParam.trip.State);
                                 cmd.ExecuteNonQuery();
                                 result.status = true;
                                 break;
@@ -160,10 +159,11 @@ namespace SharedBicycleServices
                                     cmd.ExecuteNonQuery();
                                 }
                                 //更新行程状态以及消费金额
+                                tripParam.trip.State = "finish";
                                 cmd.CommandText = "update tblTrip set Consume=@Consume,State=@State where tblTrip.TripID=@TripID";
                                 cmd.Parameters.AddWithValue("@TripID", tripParam.trip.TripID);
                                 cmd.Parameters.AddWithValue("@Consume", tripParam.trip.Consume);
-                                cmd.Parameters.AddWithValue("@State", "finish");
+                                cmd.Parameters.AddWithValue("@State", tripParam.trip.State);
                                 cmd.ExecuteNonQuery();
                                 result.status = true;
                                 break;

@@ -17,6 +17,9 @@ namespace SharedBicycleServices
     {
         public Boolean status { get; set; }
         public String message { get; set; }
+        public Boolean login { get; set; }
+        public User user { get; set; }
+        public Trip trip { get; set; }
     }
 
     public class LoginHandler : IHttpHandler
@@ -40,14 +43,16 @@ namespace SharedBicycleServices
                     cmd.CommandText = "select * from tblUser where tblUser.UserID = '" + userID + "'";
                     SqlDataReader dr = cmd.ExecuteReader();
                     String str = "";
+                    result.login = false;
                     if (dr.Read())
                     {
                         str = dr["Passward"].ToString();
                         if (str.Equals(pwd))
                         {
-                            result.status = true;
+                            result.login = true;
                         }
                     }
+                    result.status = true;
                     context.Response.Write(JsonConvert.SerializeObject(result));
                     dr.Close();
                     con.Close();
