@@ -175,14 +175,6 @@ namespace SharedBicycleServices
                             cmd.ExecuteNonQuery();
                             result.status = true;
                             break;
-                        //违规处理,目前是当用户用车时间超过24小时时，出现违规处理，扣除信用分5分。
-                        case "illegal":
-                            cmd.CommandText = "update tblUser set CreditScore = CreditScore-5 where UserID = '" + param.user.UserID + "'";
-                            cmd.ExecuteNonQuery();
-                            cmd.CommandText = "insert into tblIllegal(UserID,IllegalContent,DeductCreditScore,IllegalTime) values('" + param.user.UserID + "','" + "未在规定时间内结束用车" + "','" + 5 + "','" + DateTime.Now.ToString() + "')";
-                            cmd.ExecuteNonQuery();
-                            result.status = true;
-                            break;
                         //充值
                         case "balance":
                             cmd.CommandText = "update tblUser set Balance = Balance + " + float.Parse(param.user.Balance) + " where UserID = '" + param.user.UserID + "'";

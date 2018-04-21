@@ -165,10 +165,12 @@ namespace SharedBicycleServices
                                 DateTime startTime = Convert.ToDateTime(tripParam.trip.StartTime);
                                 DateTime endTime = Convert.ToDateTime(tripParam.trip.EndTime);
                                 TimeSpan midTime = endTime - startTime;
-                                //超过1天扣除信用分
+                                //违规处理,目前是当用户用车时间超过24小时时，出现违规处理，扣除信用分5分。
                                 if (midTime.Days > 0)
                                 {
-                                    cmd.CommandText = "update tblUser set CreditScore = CreditScore-20 where UserID = '" + tripParam.trip.UserID + "'";
+                                    cmd.CommandText = "update tblUser set CreditScore = CreditScore-5 where UserID = '" + tripParam.trip.UserID + "'";
+                                    cmd.ExecuteNonQuery();
+                                    cmd.CommandText = "insert into tblIllegal(UserID,IllegalContent,DeductCreditScore,IllegalTime) values('" + tripParam.trip.UserID + "','" + "未在规定时间内结束用车" + "','" + 5 + "','" + DateTime.Now.ToString() + "')";
                                     cmd.ExecuteNonQuery();
                                 }
                                 //使用优惠券
