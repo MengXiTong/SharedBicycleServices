@@ -65,8 +65,11 @@ namespace SharedBicycleServices
                         trip.TripID = dr["TripID"].ToString();
                         trip.UserID = dr["UserID"].ToString();
                         trip.BikeID = dr["BikeID"].ToString();
-                        trip.StartTime = dr["StartTime"].ToString();
-                        trip.EndTime = dr["EndTime"].ToString();
+                        trip.StartTime = (Convert.ToDateTime(dr["StartTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                        if (!String.IsNullOrEmpty(dr["EndTime"].ToString()))
+                        {
+                            trip.EndTime = (Convert.ToDateTime(dr["EndTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                        }
                         trip.Consume = dr["Consume"].ToString();
                         trip.Position = dr["Position"].ToString();
                         trip.State = dr["State"].ToString();
@@ -81,23 +84,43 @@ namespace SharedBicycleServices
                     StreamReader sr = new StreamReader(context.Request.InputStream);
                     String data = sr.ReadToEnd();
                     Trip trip = JsonConvert.DeserializeObject<Trip>(data);
-                    trip.State = "unfinish";
-                    cmd.CommandText = "insert into tblTrip(UserID,BikeID,StartTime,State) values(@UserID,@BikeID,@StartTime,@State)";
-                    cmd.Parameters.AddWithValue("@UserID", trip.UserID);
-                    cmd.Parameters.AddWithValue("@BikeID", trip.BikeID);
-                    cmd.Parameters.AddWithValue("@StartTime", trip.StartTime);
-                    cmd.Parameters.AddWithValue("@State", trip.State);
-                    cmd.ExecuteNonQuery();
-                    cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + trip.UserID + "' order by TripID DESC";
-                    SqlDataReader dr = cmd.ExecuteReader();
-                    if (dr.Read())
+                    cmd.CommandText = "select * from tblBike where BikeID='"+trip.BikeID+"'";
+                    SqlDataReader drBike = cmd.ExecuteReader();
+                    if (drBike.Read())
                     {
-                        trip.TripID = dr["TripID"].ToString();
+                        if (drBike["StateID"].ToString() == "1")
+                        {
+                            drBike.Close();
+                            trip.State = "unfinish";
+                            cmd.CommandText = "insert into tblTrip(UserID,BikeID,StartTime,State) values(@UserID,@BikeID,@StartTime,@State)";
+                            cmd.Parameters.AddWithValue("@UserID", trip.UserID);
+                            cmd.Parameters.AddWithValue("@BikeID", trip.BikeID);
+                            cmd.Parameters.AddWithValue("@StartTime", trip.StartTime);
+                            cmd.Parameters.AddWithValue("@State", trip.State);
+                            cmd.ExecuteNonQuery();
+                            cmd.CommandText = "update tblBike set StateID = 2 where BikeID='"+trip.BikeID+"'";
+                            cmd.ExecuteNonQuery();
+                            cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + trip.UserID + "' order by TripID DESC";
+                            SqlDataReader dr = cmd.ExecuteReader();
+                            if (dr.Read())
+                            {
+                                trip.TripID = dr["TripID"].ToString();
+                            }
+                            result.trip = trip;
+                            result.status = true;
+                            dr.Close();
+                        }
+                        else
+                        {
+                            result.message = "该车处于被使用或维修中";
+                            drBike.Close();
+                        }
                     }
-                    result.trip = trip;
-                    result.status = true;
+                    else
+                    {
+                        result.message = "查不到该车信息";
+                    }
                     context.Response.Write(JsonConvert.SerializeObject(result));
-                    dr.Close();
                 }
                 if (context.Request.HttpMethod.ToUpper() == "PUT")
                 {
@@ -111,10 +134,9 @@ namespace SharedBicycleServices
                             {
                                 if (tripParam.trip.State == "unfinish")
                                 {
-                                    cmd.CommandText = "update tblTrip set Position+=@Position,EndTime=@EndTime where tblTrip.TripID=@TripID";
+                                    cmd.CommandText = "update tblTrip set Position+=@Position where tblTrip.TripID=@TripID";
                                     cmd.Parameters.AddWithValue("@TripID", tripParam.trip.TripID);
                                     cmd.Parameters.AddWithValue("@Position", "|"+tripParam.trip.Position);
-                                    cmd.Parameters.AddWithValue("@EndTime", tripParam.trip.EndTime);
                                     cmd.ExecuteNonQuery();
                                 }
                                 result.status = true;
@@ -124,9 +146,15 @@ namespace SharedBicycleServices
                         case "end":
                             {
                                 tripParam.trip.State = "defray";
-                                cmd.CommandText = "update tblTrip set State=@State where tblTrip.TripID=@TripID";
+                                cmd.CommandText = "update tblTrip set State=@State,Consume=@Consume,EndTime=@EndTime where tblTrip.TripID=@TripID";
                                 cmd.Parameters.AddWithValue("@TripID", tripParam.trip.TripID);
                                 cmd.Parameters.AddWithValue("@State", tripParam.trip.State);
+                                cmd.Parameters.AddWithValue("@Consume", tripParam.trip.Consume);
+                                cmd.Parameters.AddWithValue("@EndTime", tripParam.trip.EndTime);
+                                cmd.ExecuteNonQuery();
+                                String strLat = tripParam.trip.Position.Substring(0, tripParam.trip.Position.IndexOf(','));
+                                String strLong = tripParam.trip.Position.Substring(tripParam.trip.Position.IndexOf(',') + 1);
+                                cmd.CommandText = "update tblBike set StateID='1',BikeLongitude='" + strLong + "',BikeLatitude='" + strLat + "' where tblBike.BikeID='" + tripParam.trip.BikeID + "'";
                                 cmd.ExecuteNonQuery();
                                 result.status = true;
                                 break;
