@@ -1,0 +1,114 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Data.SqlClient;
+using System.IO;
+using Newtonsoft.Json;
+
+namespace SharedBicycleServices
+{
+    class CouponType
+    {
+        public String CouponTypeID { get; set; }
+        public String CouponTypeName { get; set; }
+        public String FavorablePrice { get; set; }
+    }
+
+    class Coupon
+    {
+        public String CouponID { get; set; }
+        public String UserID { get; set; }
+        public String CouponTypeID { get; set; }
+        public String ExpirationDate { get; set; }
+        public String CouponTypeName { get; set; }
+        public String FavorablePrice { get; set; }
+    }
+
+    /// <summary>
+    /// CouponHandler 的摘要说明
+    /// </summary>
+    public class CouponHandler : IHttpHandler
+    {
+
+        public void ProcessRequest(HttpContext context)
+        {
+            context.Response.ContentType = "application/json";
+            Result result = new Result();
+            result.status = false;
+            try
+            {
+                SqlConnection con = new SqlConnection("server=localhost;database=SharedBicycle;user id=sa;password=123456");
+                SqlCommand cmd = new SqlCommand();
+                cmd.Connection = con;
+                con.Open();
+                if (context.Request.HttpMethod.ToUpper() == "GET")
+                {
+                    String type = context.Request.QueryString["Type"];
+                    if (type == "couponType")
+                    {
+                        cmd.CommandText = "select * from tblCouponType";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        List<CouponType> couponTypeList = new List<CouponType>();
+                        while(dr.Read()){
+                            CouponType couponType = new CouponType();
+                            couponType.CouponTypeID = dr["CouponTypeID"].ToString();
+                            couponType.CouponTypeName = dr["CouponTypeName"].ToString();
+                            couponType.FavorablePrice = dr["FavorablePrice"].ToString();
+                            couponTypeList.Add(couponType);
+                        }
+                        result.couponTypeList = couponTypeList;
+                    }
+                    if (type == "coupon")
+                    {
+                        String userID = context.Request.QueryString["UserID"];
+                        cmd.CommandText = "delete from tblCoupon where UserID='" + userID + "' and ExpirationDate<'" + DateTime.Now.ToString() + "'";
+                        cmd.ExecuteNonQuery();
+                        cmd.CommandText = "select CouponID,UserID,tblCoupon.CouponTypeID,ExpirationDate,CouponTypeName,FavorablePrice from tblCoupon,tblCouponType where tblCoupon.CouponTypeID=tblCouponType.CouponTypeID and UserID='" + userID + "'";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        List<Coupon> couponList = new List<Coupon>();
+                        while (dr.Read())
+                        {
+                            Coupon coupon = new Coupon();
+                            coupon.CouponID = dr["CouponID"].ToString();
+                            coupon.UserID = dr["UserID"].ToString();
+                            coupon.CouponTypeID = dr["CouponTypeID"].ToString();
+                            coupon.ExpirationDate = (Convert.ToDateTime(dr["ExpirationDate"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                            coupon.CouponTypeName = dr["CouponTypeName"].ToString();
+                            coupon.FavorablePrice = dr["FavorablePrice"].ToString();
+                            couponList.Add(coupon);
+                        }
+                        result.couponList = couponList;
+                    }
+                }
+                if (context.Request.HttpMethod.ToUpper() == "POST")
+                {
+                    StreamReader sr = new StreamReader(context.Request.InputStream);
+                    String data = sr.ReadToEnd();
+                    Coupon coupon = JsonConvert.DeserializeObject<Coupon>(data);
+                    cmd.CommandText = "insert into tblCoupon(UserID,CouponTypeID,ExpirationDate) values(@UserID,@CouponTypeID,@ExpirationDate)";
+                    cmd.Parameters.AddWithValue("@UserID", coupon.UserID);
+                    cmd.Parameters.AddWithValue("@CouponTypeID", coupon.CouponTypeID);
+                    cmd.Parameters.AddWithValue("@ExpirationDate", DateTime.Now.AddDays(7).ToString());
+                    cmd.ExecuteNonQuery();
+                }
+                result.status = true;
+                context.Response.Write(JsonConvert.SerializeObject(result));
+                con.Close();
+            }
+            catch (Exception error)
+            {
+                result.message = error.ToString();
+                context.Response.Write(JsonConvert.SerializeObject(result));
+            }
+        }
+
+        public bool IsReusable
+        {
+            get
+            {
+                return false;
+            }
+        }
+    }
+}

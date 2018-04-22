@@ -25,15 +25,6 @@ namespace SharedBicycleServices
         public String CouponID { get; set; }
     }
 
-    class Bike
-    {
-        public String BikeID { get; set; }
-        public String ModelID { get; set; }
-        public String StateID { get; set; }
-        public String BikeLongitude { get; set; }
-        public String BikeLatitude { get; set; }
-    }
-
     class TripParam
     {
         public String type { get; set; }

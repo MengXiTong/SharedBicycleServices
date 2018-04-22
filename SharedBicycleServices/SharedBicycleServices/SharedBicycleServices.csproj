@@ -66,6 +66,12 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BikeHandler.ashx.cs">
+      <DependentUpon>BikeHandler.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="CouponHandler.ashx.cs">
+      <DependentUpon>CouponHandler.ashx</DependentUpon>
+    </Compile>
     <Compile Include="LoginHandler.ashx.cs">
       <DependentUpon>LoginHandler.ashx</DependentUpon>
     </Compile>
@@ -81,6 +87,8 @@
     <Content Include="LoginHandler.ashx" />
     <Content Include="UserHandler.ashx" />
     <Content Include="TripHandler.ashx" />
+    <Content Include="CouponHandler.ashx" />
+    <Content Include="BikeHandler.ashx" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
       <SubType>Designer</SubType>
