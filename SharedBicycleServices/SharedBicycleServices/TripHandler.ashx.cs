@@ -62,17 +62,20 @@ namespace SharedBicycleServices
                     trip.State = "finish";
                     if (dr.Read())
                     {
-                        trip.TripID = dr["TripID"].ToString();
-                        trip.UserID = dr["UserID"].ToString();
-                        trip.BikeID = dr["BikeID"].ToString();
-                        trip.StartTime = (Convert.ToDateTime(dr["StartTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
-                        if (!String.IsNullOrEmpty(dr["EndTime"].ToString()))
+                        if (!dr["State"].ToString().Equals("finish"))
                         {
-                            trip.EndTime = (Convert.ToDateTime(dr["EndTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                            trip.TripID = dr["TripID"].ToString();
+                            trip.UserID = dr["UserID"].ToString();
+                            trip.BikeID = dr["BikeID"].ToString();
+                            trip.StartTime = (Convert.ToDateTime(dr["StartTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                            if (!String.IsNullOrEmpty(dr["EndTime"].ToString()))
+                            {
+                                trip.EndTime = (Convert.ToDateTime(dr["EndTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                            }
+                            trip.Consume = dr["Consume"].ToString();
+                            trip.Position = dr["Position"].ToString();
+                            trip.State = dr["State"].ToString();
                         }
-                        trip.Consume = dr["Consume"].ToString();
-                        trip.Position = dr["Position"].ToString();
-                        trip.State = dr["State"].ToString();
                     }
                     result.trip = trip;
                     result.status = true;
@@ -91,24 +94,43 @@ namespace SharedBicycleServices
                         if (drBike["StateID"].ToString() == "1")
                         {
                             drBike.Close();
-                            trip.State = "unfinish";
-                            cmd.CommandText = "insert into tblTrip(UserID,BikeID,StartTime,State) values(@UserID,@BikeID,@StartTime,@State)";
-                            cmd.Parameters.AddWithValue("@UserID", trip.UserID);
-                            cmd.Parameters.AddWithValue("@BikeID", trip.BikeID);
-                            cmd.Parameters.AddWithValue("@StartTime", trip.StartTime);
-                            cmd.Parameters.AddWithValue("@State", trip.State);
-                            cmd.ExecuteNonQuery();
-                            cmd.CommandText = "update tblBike set StateID = 2 where BikeID='"+trip.BikeID+"'";
-                            cmd.ExecuteNonQuery();
-                            cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + trip.UserID + "' order by TripID DESC";
-                            SqlDataReader dr = cmd.ExecuteReader();
-                            if (dr.Read())
+                            cmd.CommandText = "select * from tblUser where UserID='"+trip.UserID+"'";
+                            SqlDataReader drUser = cmd.ExecuteReader();
+                            if (drUser.Read())
                             {
-                                trip.TripID = dr["TripID"].ToString();
+                                if (float.Parse(drUser["Balance"].ToString())>0)
+                                {
+                                    drUser.Close();
+                                    trip.State = "unfinish";
+                                    cmd.CommandText = "insert into tblTrip(UserID,BikeID,StartTime,State,Position) values(@UserID,@BikeID,@StartTime,@State,'')";
+                                    cmd.Parameters.AddWithValue("@UserID", trip.UserID);
+                                    cmd.Parameters.AddWithValue("@BikeID", trip.BikeID);
+                                    cmd.Parameters.AddWithValue("@StartTime", trip.StartTime);
+                                    cmd.Parameters.AddWithValue("@State", trip.State);
+                                    cmd.ExecuteNonQuery();
+                                    cmd.CommandText = "update tblBike set StateID = 2 where BikeID='" + trip.BikeID + "'";
+                                    cmd.ExecuteNonQuery();
+                                    cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + trip.UserID + "' order by TripID DESC";
+                                    SqlDataReader dr = cmd.ExecuteReader();
+                                    if (dr.Read())
+                                    {
+                                        trip.TripID = dr["TripID"].ToString();
+                                    }
+                                    result.trip = trip;
+                                    result.status = true;
+                                    dr.Close();
+                                }
+                                else
+                                {
+                                    result.message = "余额不足，请充值";
+                                    drUser.Close();
+                                }
                             }
-                            result.trip = trip;
-                            result.status = true;
-                            dr.Close();
+                            else
+                            {
+                                result.message = "查不到用户信息";
+                                drUser.Close();
+                            }
                         }
                         else
                         {
@@ -119,6 +141,7 @@ namespace SharedBicycleServices
                     else
                     {
                         result.message = "查不到该车信息";
+                        drBike.Close();
                     }
                     context.Response.Write(JsonConvert.SerializeObject(result));
                 }
@@ -136,10 +159,14 @@ namespace SharedBicycleServices
                                 {
                                     cmd.CommandText = "update tblTrip set Position+=@Position where tblTrip.TripID=@TripID";
                                     cmd.Parameters.AddWithValue("@TripID", tripParam.trip.TripID);
-                                    cmd.Parameters.AddWithValue("@Position", "|"+tripParam.trip.Position);
+                                    cmd.Parameters.AddWithValue("@Position", "|" + tripParam.trip.Position);
                                     cmd.ExecuteNonQuery();
+                                    result.status = true;
                                 }
-                                result.status = true;
+                                else
+                                {
+                                    result.message = "本次行程已结束";
+                                }
                                 break;
                             }
                         //结束行程
@@ -156,12 +183,6 @@ namespace SharedBicycleServices
                                 String strLong = tripParam.trip.Position.Substring(tripParam.trip.Position.IndexOf(',') + 1);
                                 cmd.CommandText = "update tblBike set StateID='1',BikeLongitude='" + strLong + "',BikeLatitude='" + strLat + "' where tblBike.BikeID='" + tripParam.trip.BikeID + "'";
                                 cmd.ExecuteNonQuery();
-                                result.status = true;
-                                break;
-                            }
-                        //支付------------每完成一次消费添加信用分1分。
-                        case "pay":
-                            {
                                 DateTime startTime = Convert.ToDateTime(tripParam.trip.StartTime);
                                 DateTime endTime = Convert.ToDateTime(tripParam.trip.EndTime);
                                 TimeSpan midTime = endTime - startTime;
@@ -173,6 +194,12 @@ namespace SharedBicycleServices
                                     cmd.CommandText = "insert into tblIllegal(UserID,IllegalContent,DeductCreditScore,IllegalTime) values('" + tripParam.trip.UserID + "','" + "未在规定时间内结束用车" + "','" + 5 + "','" + DateTime.Now.ToString() + "')";
                                     cmd.ExecuteNonQuery();
                                 }
+                                result.status = true;
+                                break;
+                            }
+                        //支付------------每完成一次消费添加信用分1分。
+                        case "pay":
+                            {
                                 //使用优惠券
                                 if (!String.IsNullOrEmpty(tripParam.trip.CouponID))
                                 {
@@ -185,9 +212,9 @@ namespace SharedBicycleServices
                                 {
                                     cmd.CommandText = "update tblUser set Balance = Balance - " + consume + " where UserID = '" + tripParam.trip.UserID + "'";
                                     cmd.ExecuteNonQuery();
-                                    cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + tripParam.trip.UserID + "','" + 1 + "','" + consume + "','" + DateTime.Now.ToString() + "')";
-                                    cmd.ExecuteNonQuery();
                                 }
+                                cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + tripParam.trip.UserID + "','" + 1 + "','" + consume + "','" + DateTime.Now.ToString() + "')";
+                                cmd.ExecuteNonQuery();
                                 //更新行程状态以及消费金额
                                 tripParam.trip.State = "finish";
                                 cmd.CommandText = "update tblTrip set Consume=@Consume,State=@State where tblTrip.TripID=@TripID";
