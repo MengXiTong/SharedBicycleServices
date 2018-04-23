@@ -72,6 +72,7 @@ namespace SharedBicycleServices
                             }
                         }
                         result.trip = trip;
+                        result.status = true;
                         dr.Close();
                     }
                     else if (type == "info")
@@ -92,9 +93,34 @@ namespace SharedBicycleServices
                             tripList.Add(trip);
                         }
                         result.tripList = tripList;
+                        result.status = true;
                         dr.Close();
                     }
-                    result.status = true;
+                    else if (type == "detail")
+                    {
+                        String tripID = context.Request.QueryString["TripID"];
+                        cmd.CommandText = "select * from tblTrip where tblTrip.TripID = '" + tripID + "'";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        if (dr.Read())
+                        {
+                            Trip trip = new Trip();
+                            trip.TripID = dr["TripID"].ToString();
+                            trip.UserID = dr["UserID"].ToString();
+                            trip.BikeID = dr["BikeID"].ToString();
+                            trip.Consume = dr["Consume"].ToString();
+                            trip.StartTime = (Convert.ToDateTime(dr["StartTime"].ToString())).ToString("yyyy-MM-dd HH:mm:sss");
+                            trip.EndTime = (Convert.ToDateTime(dr["EndTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                            trip.Position = dr["Position"].ToString();
+                            trip.State = dr["State"].ToString();
+                            result.trip = trip;
+                            result.status = true;
+                        }
+                        else
+                        {
+                            result.message = "未查到该行程信息";
+                        }
+                        dr.Close();
+                    }
                     context.Response.Write(JsonConvert.SerializeObject(result));
                 }
                 if (context.Request.HttpMethod.ToUpper() == "POST")
