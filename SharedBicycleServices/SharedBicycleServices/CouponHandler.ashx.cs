@@ -44,53 +44,55 @@ namespace SharedBicycleServices
                 con.Open();
                 if (context.Request.HttpMethod.ToUpper() == "GET")
                 {
-                    String type = context.Request.QueryString["Type"];
-                    if (type == "couponType")
+                    String userID = context.Request.QueryString["UserID"];
+                    cmd.CommandText = "delete from tblCoupon where UserID='" + userID + "' and ExpirationDate<'" + DateTime.Now.ToString() + "'";
+                    cmd.ExecuteNonQuery();
+                    cmd.CommandText = "select CouponID,UserID,tblCoupon.CouponTypeID,ExpirationDate,CouponTypeName,FavorablePrice from tblCoupon,tblCouponType where tblCoupon.CouponTypeID=tblCouponType.CouponTypeID and UserID='" + userID + "'";
+                    SqlDataReader dr = cmd.ExecuteReader();
+                    List<Coupon> couponList = new List<Coupon>();
+                    while (dr.Read())
                     {
-                        cmd.CommandText = "select * from tblCouponType";
-                        SqlDataReader dr = cmd.ExecuteReader();
-                        List<CouponType> couponTypeList = new List<CouponType>();
-                        while(dr.Read()){
-                            CouponType couponType = new CouponType();
-                            couponType.CouponTypeID = dr["CouponTypeID"].ToString();
-                            couponType.CouponTypeName = dr["CouponTypeName"].ToString();
-                            couponType.FavorablePrice = dr["FavorablePrice"].ToString();
-                            couponTypeList.Add(couponType);
-                        }
-                        result.couponTypeList = couponTypeList;
+                        Coupon coupon = new Coupon();
+                        coupon.CouponID = dr["CouponID"].ToString();
+                        coupon.UserID = dr["UserID"].ToString();
+                        coupon.CouponTypeID = dr["CouponTypeID"].ToString();
+                        coupon.ExpirationDate = (Convert.ToDateTime(dr["ExpirationDate"].ToString())).ToString("yyyy-MM-dd");
+                        coupon.CouponTypeName = dr["CouponTypeName"].ToString();
+                        coupon.FavorablePrice = dr["FavorablePrice"].ToString();
+                        couponList.Add(coupon);
                     }
-                    if (type == "coupon")
-                    {
-                        String userID = context.Request.QueryString["UserID"];
-                        cmd.CommandText = "delete from tblCoupon where UserID='" + userID + "' and ExpirationDate<'" + DateTime.Now.ToString() + "'";
-                        cmd.ExecuteNonQuery();
-                        cmd.CommandText = "select CouponID,UserID,tblCoupon.CouponTypeID,ExpirationDate,CouponTypeName,FavorablePrice from tblCoupon,tblCouponType where tblCoupon.CouponTypeID=tblCouponType.CouponTypeID and UserID='" + userID + "'";
-                        SqlDataReader dr = cmd.ExecuteReader();
-                        List<Coupon> couponList = new List<Coupon>();
-                        while (dr.Read())
-                        {
-                            Coupon coupon = new Coupon();
-                            coupon.CouponID = dr["CouponID"].ToString();
-                            coupon.UserID = dr["UserID"].ToString();
-                            coupon.CouponTypeID = dr["CouponTypeID"].ToString();
-                            coupon.ExpirationDate = (Convert.ToDateTime(dr["ExpirationDate"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
-                            coupon.CouponTypeName = dr["CouponTypeName"].ToString();
-                            coupon.FavorablePrice = dr["FavorablePrice"].ToString();
-                            couponList.Add(coupon);
-                        }
-                        result.couponList = couponList;
-                    }
+                    dr.Close();
+                    result.couponList = couponList;
                 }
                 if (context.Request.HttpMethod.ToUpper() == "POST")
                 {
+                    cmd.CommandText = "select * from tblCouponType";
+                    SqlDataReader dr = cmd.ExecuteReader();
+                    List<CouponType> couponTypeList = new List<CouponType>();
+                    while (dr.Read())
+                    {
+                        CouponType couponType = new CouponType();
+                        couponType.CouponTypeID = dr["CouponTypeID"].ToString();
+                        couponType.CouponTypeName = dr["CouponTypeName"].ToString();
+                        couponType.FavorablePrice = dr["FavorablePrice"].ToString();
+                        couponTypeList.Add(couponType);
+                    }
+                    dr.Close();
+                    Random rd = new Random();
+                    int index = rd.Next(0,couponTypeList.Count);
                     StreamReader sr = new StreamReader(context.Request.InputStream);
                     String data = sr.ReadToEnd();
                     Coupon coupon = JsonConvert.DeserializeObject<Coupon>(data);
+                    coupon.CouponTypeID = couponTypeList[index].CouponTypeID;
+                    coupon.CouponTypeName = couponTypeList[index].CouponTypeName;
+                    coupon.FavorablePrice = couponTypeList[index].FavorablePrice;
+                    coupon.ExpirationDate = DateTime.Now.AddDays(7).ToString();
                     cmd.CommandText = "insert into tblCoupon(UserID,CouponTypeID,ExpirationDate) values(@UserID,@CouponTypeID,@ExpirationDate)";
                     cmd.Parameters.AddWithValue("@UserID", coupon.UserID);
                     cmd.Parameters.AddWithValue("@CouponTypeID", coupon.CouponTypeID);
-                    cmd.Parameters.AddWithValue("@ExpirationDate", DateTime.Now.AddDays(7).ToString());
+                    cmd.Parameters.AddWithValue("@ExpirationDate", coupon.ExpirationDate);
                     cmd.ExecuteNonQuery();
+                    result.coupon = coupon;
                 }
                 result.status = true;
                 context.Response.Write(JsonConvert.SerializeObject(result));

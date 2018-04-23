@@ -20,7 +20,7 @@ namespace SharedBicycleServices
         public Boolean login { get; set; }
         public User user { get; set; }
         public Trip trip { get; set; }
-        public List<CouponType> couponTypeList { get; set; }
+        public Coupon coupon { get; set; }
         public List<Coupon> couponList { get; set; }
         public List<Bike> bikeList { get; set; }
         public List<Model> modelList { get; set; }

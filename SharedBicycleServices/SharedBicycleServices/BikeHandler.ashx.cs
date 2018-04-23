@@ -54,7 +54,15 @@ namespace SharedBicycleServices
                     String type = context.Request.QueryString["Type"];
                     if (type == "bike")
                     {
-                        cmd.CommandText = "select BikeID,tblBike.ModelID,tblBike.StateID,BikeLongitude,BikeLatitude,ModelName,StateName from tblBike,tblState,tblModel where tblBike.StateID=tblState.StateID and tblBike.ModelID=tblModel.ModelID";
+                        String subType = context.Request.QueryString["SubType"];
+                        if (subType == "position")
+                        {
+                            cmd.CommandText = "select BikeID,tblBike.ModelID,tblBike.StateID,BikeLongitude,BikeLatitude,ModelName,StateName from tblBike,tblState,tblModel where tblBike.StateID=tblState.StateID and tblBike.ModelID=tblModel.ModelID and tblBike.StateID=1";
+                        }
+                        else if (subType == "info")
+                        {
+                            cmd.CommandText = "select BikeID,tblBike.ModelID,tblBike.StateID,BikeLongitude,BikeLatitude,ModelName,StateName from tblBike,tblState,tblModel where tblBike.StateID=tblState.StateID and tblBike.ModelID=tblModel.ModelID";
+                        }
                         SqlDataReader dr = cmd.ExecuteReader();
                         List<Bike> bikeList = new List<Bike>();
                         while (dr.Read())
@@ -70,6 +78,7 @@ namespace SharedBicycleServices
                             bikeList.Add(bike);
                         }
                         result.bikeList = bikeList;
+                        dr.Close();
                     }
                     if (type == "model")
                     {
@@ -84,6 +93,7 @@ namespace SharedBicycleServices
                             modelList.Add(model);
                         }
                         result.modelList = modelList;
+                        dr.Close();
                     }
                     if (type == "state")
                     {
@@ -98,6 +108,7 @@ namespace SharedBicycleServices
                             stateList.Add(state);
                         }
                         result.stateList = stateList;
+                        dr.Close();
                     }
                 }
                 result.status = true;
