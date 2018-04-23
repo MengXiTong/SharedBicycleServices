@@ -61,7 +61,10 @@ namespace SharedBicycleServices
                         }
                         else if (subType == "info")
                         {
-                            cmd.CommandText = "select BikeID,tblBike.ModelID,tblBike.StateID,BikeLongitude,BikeLatitude,ModelName,StateName from tblBike,tblState,tblModel where tblBike.StateID=tblState.StateID and tblBike.ModelID=tblModel.ModelID";
+                            String pageNum = context.Request.QueryString["PageNum"];
+                            int end = int.Parse(pageNum) * 10;
+                            int start = (int.Parse(pageNum) - 1) * 10 + 1;
+                            cmd.CommandText = "select BikeID,a.ModelID,a.StateID,BikeLongitude,BikeLatitude,ModelName,StateName from (select row_number()over(order by BikeID)rownumber,* from tblBike)a,tblState,tblModel where a.StateID=tblState.StateID and a.ModelID=tblModel.ModelID and rownumber between " + start + " and " + end;
                         }
                         SqlDataReader dr = cmd.ExecuteReader();
                         List<Bike> bikeList = new List<Bike>();

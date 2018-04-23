@@ -47,31 +47,55 @@ namespace SharedBicycleServices
                 if (context.Request.HttpMethod.ToUpper() == "GET")
                 {
                     String userID = context.Request.QueryString["UserID"];
-                    cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + userID + "' order by TripID DESC";
-                    SqlDataReader dr = cmd.ExecuteReader();
-                    Trip trip = new Trip();
-                    trip.State = "finish";
-                    if (dr.Read())
+                    String type = context.Request.QueryString["Type"];
+                    if (type == "state")
                     {
-                        if (!dr["State"].ToString().Equals("finish"))
+                        cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + userID + "' order by TripID DESC";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        Trip trip = new Trip();
+                        trip.State = "finish";
+                        if (dr.Read())
                         {
-                            trip.TripID = dr["TripID"].ToString();
-                            trip.UserID = dr["UserID"].ToString();
-                            trip.BikeID = dr["BikeID"].ToString();
-                            trip.StartTime = (Convert.ToDateTime(dr["StartTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
-                            if (!String.IsNullOrEmpty(dr["EndTime"].ToString()))
+                            if (!dr["State"].ToString().Equals("finish"))
                             {
-                                trip.EndTime = (Convert.ToDateTime(dr["EndTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                                trip.TripID = dr["TripID"].ToString();
+                                trip.UserID = dr["UserID"].ToString();
+                                trip.BikeID = dr["BikeID"].ToString();
+                                trip.StartTime = (Convert.ToDateTime(dr["StartTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                                if (!String.IsNullOrEmpty(dr["EndTime"].ToString()))
+                                {
+                                    trip.EndTime = (Convert.ToDateTime(dr["EndTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                                }
+                                trip.Consume = dr["Consume"].ToString();
+                                trip.Position = dr["Position"].ToString();
+                                trip.State = dr["State"].ToString();
                             }
-                            trip.Consume = dr["Consume"].ToString();
-                            trip.Position = dr["Position"].ToString();
-                            trip.State = dr["State"].ToString();
                         }
+                        result.trip = trip;
+                        dr.Close();
                     }
-                    result.trip = trip;
+                    else if (type == "info")
+                    {
+                        String pageNum = context.Request.QueryString["PageNum"];
+                        int end = int.Parse(pageNum) * 10;
+                        int start = (int.Parse(pageNum)-1)*10 + 1;
+                        cmd.CommandText = "select * from (select row_number()over(order by TripID Desc)rownumber,* from tblTrip where UserID='" + userID + "')a where rownumber between " + start + " and " + end;
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        List<Trip> tripList = new List<Trip>();
+                        while(dr.Read()){
+                            Trip trip = new Trip();
+                            trip.TripID = dr["TripID"].ToString();
+                            trip.BikeID = dr["BikeID"].ToString();
+                            trip.Consume = dr["Consume"].ToString();
+                            trip.StartTime = (Convert.ToDateTime(dr["StartTime"].ToString())).ToString("yyyy年MM月dd日 HH:mm:ss");
+                            trip.State = dr["State"].ToString();
+                            tripList.Add(trip);
+                        }
+                        result.tripList = tripList;
+                        dr.Close();
+                    }
                     result.status = true;
                     context.Response.Write(JsonConvert.SerializeObject(result));
-                    dr.Close();
                 }
                 if (context.Request.HttpMethod.ToUpper() == "POST")
                 {
@@ -89,31 +113,39 @@ namespace SharedBicycleServices
                             SqlDataReader drUser = cmd.ExecuteReader();
                             if (drUser.Read())
                             {
-                                if (float.Parse(drUser["Balance"].ToString())>0)
+                                if (float.Parse(drUser["Deposit"].ToString()) > 0)
                                 {
-                                    drUser.Close();
-                                    trip.State = "unfinish";
-                                    cmd.CommandText = "insert into tblTrip(UserID,BikeID,StartTime,State,Position) values(@UserID,@BikeID,@StartTime,@State,'')";
-                                    cmd.Parameters.AddWithValue("@UserID", trip.UserID);
-                                    cmd.Parameters.AddWithValue("@BikeID", trip.BikeID);
-                                    cmd.Parameters.AddWithValue("@StartTime", trip.StartTime);
-                                    cmd.Parameters.AddWithValue("@State", trip.State);
-                                    cmd.ExecuteNonQuery();
-                                    cmd.CommandText = "update tblBike set StateID = 2 where BikeID='" + trip.BikeID + "'";
-                                    cmd.ExecuteNonQuery();
-                                    cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + trip.UserID + "' order by TripID DESC";
-                                    SqlDataReader dr = cmd.ExecuteReader();
-                                    if (dr.Read())
+                                    if (float.Parse(drUser["Balance"].ToString()) > 0)
                                     {
-                                        trip.TripID = dr["TripID"].ToString();
+                                        drUser.Close();
+                                        trip.State = "unfinish";
+                                        cmd.CommandText = "insert into tblTrip(UserID,BikeID,StartTime,State,Position) values(@UserID,@BikeID,@StartTime,@State,'')";
+                                        cmd.Parameters.AddWithValue("@UserID", trip.UserID);
+                                        cmd.Parameters.AddWithValue("@BikeID", trip.BikeID);
+                                        cmd.Parameters.AddWithValue("@StartTime", trip.StartTime);
+                                        cmd.Parameters.AddWithValue("@State", trip.State);
+                                        cmd.ExecuteNonQuery();
+                                        cmd.CommandText = "update tblBike set StateID = 2 where BikeID='" + trip.BikeID + "'";
+                                        cmd.ExecuteNonQuery();
+                                        cmd.CommandText = "select * from tblTrip where tblTrip.UserID = '" + trip.UserID + "' order by TripID DESC";
+                                        SqlDataReader dr = cmd.ExecuteReader();
+                                        if (dr.Read())
+                                        {
+                                            trip.TripID = dr["TripID"].ToString();
+                                        }
+                                        result.trip = trip;
+                                        result.status = true;
+                                        dr.Close();
                                     }
-                                    result.trip = trip;
-                                    result.status = true;
-                                    dr.Close();
+                                    else
+                                    {
+                                        result.message = "余额不足，请充值";
+                                        drUser.Close();
+                                    }
                                 }
                                 else
                                 {
-                                    result.message = "余额不足，请充值";
+                                    result.message = "请先交押金";
                                     drUser.Close();
                                 }
                             }

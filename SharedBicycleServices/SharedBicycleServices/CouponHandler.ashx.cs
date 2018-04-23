@@ -47,7 +47,7 @@ namespace SharedBicycleServices
                     String userID = context.Request.QueryString["UserID"];
                     cmd.CommandText = "delete from tblCoupon where UserID='" + userID + "' and ExpirationDate<'" + DateTime.Now.ToString() + "'";
                     cmd.ExecuteNonQuery();
-                    cmd.CommandText = "select CouponID,UserID,tblCoupon.CouponTypeID,ExpirationDate,CouponTypeName,FavorablePrice from tblCoupon,tblCouponType where tblCoupon.CouponTypeID=tblCouponType.CouponTypeID and UserID='" + userID + "'";
+                    cmd.CommandText = "select CouponID,UserID,tblCoupon.CouponTypeID,ExpirationDate,CouponTypeName,FavorablePrice from tblCoupon,tblCouponType where tblCoupon.CouponTypeID=tblCouponType.CouponTypeID and UserID='" + userID + "' order by CouponID DESC";
                     SqlDataReader dr = cmd.ExecuteReader();
                     List<Coupon> couponList = new List<Coupon>();
                     while (dr.Read())
