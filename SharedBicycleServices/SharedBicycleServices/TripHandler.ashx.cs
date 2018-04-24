@@ -242,6 +242,8 @@ namespace SharedBicycleServices
                                     cmd.ExecuteNonQuery();
                                     cmd.CommandText = "insert into tblIllegal(UserID,IllegalContent,DeductCreditScore,IllegalTime) values('" + tripParam.trip.UserID + "','" + "未在规定时间内结束用车" + "','" + 5 + "','" + DateTime.Now.ToString() + "')";
                                     cmd.ExecuteNonQuery();
+                                    cmd.CommandText = "insert into tblCreditScore(CreditScore,Explain,Time,UserID) values('-5','违规超时','" + DateTime.Now.ToString() + "','" + tripParam.trip.UserID + "')";
+                                    cmd.ExecuteNonQuery();
                                 }
                                 result.status = true;
                                 break;
@@ -260,6 +262,8 @@ namespace SharedBicycleServices
                                 if (consume > 0)
                                 {
                                     cmd.CommandText = "update tblUser set Balance = Balance - " + consume + " where UserID = '" + tripParam.trip.UserID + "'";
+                                    cmd.ExecuteNonQuery();
+                                    cmd.CommandText = "insert into tblCreditScore(CreditScore,Explain,Time,UserID) values('1','完成骑行','" + DateTime.Now.ToString() + "','" + tripParam.trip.UserID + "')";
                                     cmd.ExecuteNonQuery();
                                 }
                                 cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + tripParam.trip.UserID + "','" + 1 + "','" + consume + "','" + DateTime.Now.ToString() + "')";

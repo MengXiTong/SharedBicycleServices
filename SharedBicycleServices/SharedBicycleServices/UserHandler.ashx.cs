@@ -90,6 +90,7 @@ namespace SharedBicycleServices
                         result.message = "该用户已注册";
                         context.Response.Write(JsonConvert.SerializeObject(result));
                         dr.Close();
+                        con.Close();
                         return;
                     }
                     dr.Close();

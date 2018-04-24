@@ -64,7 +64,23 @@ namespace SharedBicycleServices
                             String pageNum = context.Request.QueryString["PageNum"];
                             int end = int.Parse(pageNum) * 10;
                             int start = (int.Parse(pageNum) - 1) * 10 + 1;
-                            cmd.CommandText = "select BikeID,a.ModelID,a.StateID,BikeLongitude,BikeLatitude,ModelName,StateName from (select row_number()over(order by BikeID)rownumber,* from tblBike)a,tblState,tblModel where a.StateID=tblState.StateID and a.ModelID=tblModel.ModelID and rownumber between " + start + " and " + end;
+                            String strSql = "select BikeID,a.ModelID,a.StateID,BikeLongitude,BikeLatitude,ModelName,StateName from (select row_number()over(order by BikeID)rownumber,* from tblBike)a,tblState,tblModel where a.StateID=tblState.StateID and a.ModelID=tblModel.ModelID and rownumber between " + start + " and " + end;
+                            String bikeID = context.Request.QueryString["BikeID"];
+                            if (!String.IsNullOrEmpty(bikeID))
+                            {
+                                strSql += " and BikeID like '%"+bikeID+"%'";
+                            }
+                            String modelID = context.Request.QueryString["ModelID"];
+                            if (!String.IsNullOrEmpty(modelID))
+                            {
+                                strSql += " and a.ModelID = '" + modelID + "'";
+                            }
+                            String stateID = context.Request.QueryString["StateID"];
+                            if (!String.IsNullOrEmpty(stateID))
+                            {
+                                strSql += " and a.StateID = '" + stateID + "'";
+                            }
+                            cmd.CommandText = strSql;
                         }
                         SqlDataReader dr = cmd.ExecuteReader();
                         List<Bike> bikeList = new List<Bike>();
@@ -113,8 +129,51 @@ namespace SharedBicycleServices
                         result.stateList = stateList;
                         dr.Close();
                     }
+                    result.status = true;
                 }
-                result.status = true;
+                if (context.Request.HttpMethod.ToUpper() == "PUT")
+                {
+                    StreamReader sr = new StreamReader(context.Request.InputStream);
+                    String data = sr.ReadToEnd();
+                    Bike bike = JsonConvert.DeserializeObject<Bike>(data);
+                    cmd.CommandText = "update tblBike set ModelID='"+bike.ModelID+"',StateID='"+bike.StateID+"',BikeLongitude='"+bike.BikeLongitude+"',BikeLatitude='"+bike.BikeLatitude+"' where BikeID='"+bike.BikeID+"'";
+                    cmd.ExecuteNonQuery();
+                    result.status = true;
+                }
+                if (context.Request.HttpMethod.ToUpper() == "POST")
+                {
+                    StreamReader sr = new StreamReader(context.Request.InputStream);
+                    String data = sr.ReadToEnd();
+                    Bike bike = JsonConvert.DeserializeObject<Bike>(data);
+                    cmd.CommandText = "select * from tblBike where BikeID='"+bike.BikeID+"'";
+                    SqlDataReader dr = cmd.ExecuteReader();
+                    if (dr.Read())
+                    {
+                        result.message = @"该车辆已在库中";
+                        dr.Close();
+                        context.Response.Write(JsonConvert.SerializeObject(result));
+                        con.Close();
+                        return;
+                    }
+                    dr.Close();
+                    cmd.CommandText = "insert into tblBike(BikeID,ModelID,StateID,BikeLongitude,BikeLatitude) values(@BikeID,@ModelID,@StateID,@BikeLongitude,@BikeLatitude)";
+                    cmd.Parameters.AddWithValue("@BikeID", bike.BikeID);
+                    cmd.Parameters.AddWithValue("@ModelID", bike.ModelID);
+                    cmd.Parameters.AddWithValue("@StateID", bike.StateID);
+                    cmd.Parameters.AddWithValue("@BikeLongitude", bike.BikeLongitude);
+                    cmd.Parameters.AddWithValue("@BikeLatitude", bike.BikeLatitude);
+                    cmd.ExecuteNonQuery();
+                    result.status = true;
+                }
+                if (context.Request.HttpMethod.ToUpper() == "DELETE")
+                {
+                    StreamReader sr = new StreamReader(context.Request.InputStream);
+                    String data = sr.ReadToEnd();
+                    Bike bike = JsonConvert.DeserializeObject<Bike>(data);
+                    cmd.CommandText = "delete from tblBike where BikeID='" + bike.BikeID + "'";
+                    cmd.ExecuteNonQuery();
+                    result.status = true;
+                }
                 context.Response.Write(JsonConvert.SerializeObject(result));
                 con.Close();
             }
