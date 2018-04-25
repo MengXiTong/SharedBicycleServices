@@ -149,7 +149,7 @@ namespace SharedBicycleServices
                     SqlDataReader dr = cmd.ExecuteReader();
                     if (dr.Read())
                     {
-                        result.message = @"该车辆已在库中";
+                        result.message = "该车辆已在库中";
                         dr.Close();
                         context.Response.Write(JsonConvert.SerializeObject(result));
                         con.Close();

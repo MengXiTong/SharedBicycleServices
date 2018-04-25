@@ -108,7 +108,7 @@ namespace SharedBicycleServices
                             trip.UserID = dr["UserID"].ToString();
                             trip.BikeID = dr["BikeID"].ToString();
                             trip.Consume = dr["Consume"].ToString();
-                            trip.StartTime = (Convert.ToDateTime(dr["StartTime"].ToString())).ToString("yyyy-MM-dd HH:mm:sss");
+                            trip.StartTime = (Convert.ToDateTime(dr["StartTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
                             trip.EndTime = (Convert.ToDateTime(dr["EndTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
                             trip.Position = dr["Position"].ToString();
                             trip.State = dr["State"].ToString();

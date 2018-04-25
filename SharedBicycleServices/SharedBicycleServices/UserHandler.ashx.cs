@@ -29,6 +29,40 @@ namespace SharedBicycleServices
         public String Deposit { get; set; }
     }
 
+    class Identity
+    {
+        public String IdentityID { get; set; }
+        public String IdentityName { get; set; }
+    }
+
+    class Illegal
+    {
+        public String IllegalID { get; set; }
+        public String UserID { get; set; }
+        public String IllegalContent { get; set; }
+        public String DeductCreditScore { get; set; }
+        public String IllegalTime { get; set; }
+    }
+
+    class Detailed
+    {
+        public String DetailedID { get; set; }
+        public String UserID { get; set; }
+        public String DetailedTypeID { get; set; }
+        public String Sum { get; set; }
+        public String DetailTime { get; set; }
+        public String DetailedTypeName { get; set; }
+    }
+
+    class CreditScore
+    {
+        public String CreditScoreID { get; set; }
+        public String Score { get; set; }
+        public String Explain { get; set; }
+        public String Time { get; set; }
+        public String UserID { get; set; }
+    }
+
     class Param
     {
         public String type { get; set; }
@@ -51,33 +85,127 @@ namespace SharedBicycleServices
                 con.Open();
                 if (context.Request.HttpMethod.ToUpper() == "GET")
                 {
-                    String userID = context.Request.QueryString["UserID"];
-                    cmd.CommandText = "select UserID,Passward,Name,Sex,Birthday,tblUser.IdentityID,IdentityName,Phone,CreditScore,Photo,Balance,Deposit from tblUser,tblIdentity where tblUser.UserID = '" + userID + "' and tblUser.IdentityID = tblIdentity.IdentityID";
-                    SqlDataReader dr = cmd.ExecuteReader();
-                    if (dr.Read())
+                    String type = context.Request.QueryString["Type"];
+                    if (type == "user")
                     {
-                        User user = new User();
-                        user.UserID = dr["UserID"].ToString();
-                        user.Passward = dr["Passward"].ToString();
-                        user.Name = dr["Name"].ToString();
-                        user.Sex = dr["Sex"].ToString();
-                        user.Birthday = (Convert.ToDateTime(dr["Birthday"].ToString())).ToString("yyyy-MM-dd");
-                        user.IdentityID = dr["IdentityID"].ToString();
-                        user.IdentityName = dr["IdentityName"].ToString();
-                        user.Phone = dr["Phone"].ToString();
-                        user.CreditScore = dr["CreditScore"].ToString();
-                        user.Photo = dr["Photo"].ToString();
-                        user.Balance = dr["Balance"].ToString();
-                        user.Deposit = dr["Deposit"].ToString();
-                        if (!user.Photo.Equals(String.Empty))
+                        String userID = context.Request.QueryString["UserID"];
+                        cmd.CommandText = "select UserID,Passward,Name,Sex,Birthday,tblUser.IdentityID,IdentityName,Phone,CreditScore,Photo,Balance,Deposit from tblUser,tblIdentity where tblUser.UserID = '" + userID + "' and tblUser.IdentityID = tblIdentity.IdentityID";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        if (dr.Read())
                         {
-                            user.Photo = ImgToBase64String(user.Photo);
+                            User user = new User();
+                            user.UserID = dr["UserID"].ToString();
+                            user.Passward = dr["Passward"].ToString();
+                            user.Name = dr["Name"].ToString();
+                            user.Sex = dr["Sex"].ToString();
+                            user.Birthday = (Convert.ToDateTime(dr["Birthday"].ToString())).ToString("yyyy-MM-dd");
+                            user.IdentityID = dr["IdentityID"].ToString();
+                            user.IdentityName = dr["IdentityName"].ToString();
+                            user.Phone = dr["Phone"].ToString();
+                            user.CreditScore = dr["CreditScore"].ToString();
+                            user.Photo = dr["Photo"].ToString();
+                            user.Balance = dr["Balance"].ToString();
+                            user.Deposit = dr["Deposit"].ToString();
+                            if (!user.Photo.Equals(String.Empty))
+                            {
+                                user.Photo = ImgToBase64String(user.Photo);
+                            }
+                            result.user = user;
+                            result.status = true;
                         }
-                        result.user = user;
+                        else
+                        {
+                            result.message = "未查到该用户信息";
+                        }
+                        dr.Close();
+                    }
+                    else if (type == "identity")
+                    {
+                        cmd.CommandText = "select * from tblIdentity";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        List<Identity> identityList = new List<Identity>();
+                        while (dr.Read())
+                        {
+                            Identity identity = new Identity();
+                            identity.IdentityID = dr["IdentityID"].ToString();
+                            identity.IdentityName = dr["IdentityName"].ToString();
+                            identityList.Add(identity);
+                        }
+                        result.identityList = identityList;
                         result.status = true;
+                        dr.Close();
+                    }
+                    else if (type == "detailed")
+                    {
+                        String userID = context.Request.QueryString["UserID"];
+                        String pageNum = context.Request.QueryString["PageNum"];
+                        int end = int.Parse(pageNum) * 10;
+                        int start = (int.Parse(pageNum) - 1) * 10 + 1;
+                        cmd.CommandText = "select DetailedID,UserID,a.DetailedTypeID,Sum,DetailTime,DetailedTypeName from (select row_number()over(order by DetailedID Desc)rownumber,* from tblDetailed where UserID='" + userID + "')a,tblDetailType where a.DetailedTypeID=tblDetailType.DetailedTypeID and rownumber between " + start + " and " + end;
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        List<Detailed> detailedList = new List<Detailed>();
+                        while (dr.Read())
+                        {
+                            Detailed detailed = new Detailed();
+                            detailed.DetailedID = dr["DetailedID"].ToString();
+                            detailed.UserID = dr["UserID"].ToString();
+                            detailed.DetailedTypeID = dr["DetailedTypeID"].ToString();
+                            detailed.Sum = dr["Sum"].ToString();
+                            detailed.DetailTime = (Convert.ToDateTime(dr["DetailTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                            detailed.DetailedTypeName = dr["DetailedTypeName"].ToString();
+                            detailedList.Add(detailed);
+                        }
+                        result.detailedList = detailedList;
+                        result.status = true;
+                        dr.Close();
+                    }
+                    else if (type == "illegal")
+                    {
+                        String userID = context.Request.QueryString["UserID"];
+                        String pageNum = context.Request.QueryString["PageNum"];
+                        int end = int.Parse(pageNum) * 10;
+                        int start = (int.Parse(pageNum) - 1) * 10 + 1;
+                        cmd.CommandText = "select * from (select row_number()over(order by IllegalID Desc)rownumber,* from tblIllegal where UserID='" + userID + "')a where rownumber between " + start + " and " + end;
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        List<Illegal> illegalList = new List<Illegal>();
+                        while (dr.Read())
+                        {
+                            Illegal illegal = new Illegal();
+                            illegal.IllegalID = dr["IllegalID"].ToString();
+                            illegal.UserID = dr["UserID"].ToString();
+                            illegal.IllegalContent = dr["IllegalContent"].ToString();
+                            illegal.DeductCreditScore = dr["DeductCreditScore"].ToString();
+                            illegal.IllegalTime = (Convert.ToDateTime(dr["IllegalTime"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                            illegalList.Add(illegal);
+                        }
+                        result.illegalList = illegalList;
+                        result.status = true;
+                        dr.Close();
+                    }
+                    else if (type == "creditScore")
+                    {
+                        String userID = context.Request.QueryString["UserID"];
+                        String pageNum = context.Request.QueryString["PageNum"];
+                        int end = int.Parse(pageNum) * 10;
+                        int start = (int.Parse(pageNum) - 1) * 10 + 1;
+                        cmd.CommandText = "select * from (select row_number()over(order by CreditScoreID Desc)rownumber,* from tblCreditScore where UserID='" + userID + "')a where rownumber between " + start + " and " + end;
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        List<CreditScore> creditScoreList = new List<CreditScore>();
+                        while (dr.Read())
+                        {
+                            CreditScore creditScore = new CreditScore();
+                            creditScore.CreditScoreID = dr["CreditScoreID"].ToString();
+                            creditScore.Score = dr["CreditScore"].ToString();
+                            creditScore.Explain = dr["Explain"].ToString();
+                            creditScore.Time = (Convert.ToDateTime(dr["Time"].ToString())).ToString("yyyy-MM-dd HH:mm:ss");
+                            creditScore.UserID = dr["UserID"].ToString();
+                            creditScoreList.Add(creditScore);
+                        }
+                        result.creditScoreList = creditScoreList;
+                        result.status = true;
+                        dr.Close();
                     }
                     context.Response.Write(JsonConvert.SerializeObject(result));
-                    dr.Close();
                 }
                 if (context.Request.HttpMethod.ToUpper() == "POST")
                 {

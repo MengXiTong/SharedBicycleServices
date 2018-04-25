@@ -76,6 +76,9 @@
       <DependentUpon>LoginHandler.ashx</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RepairHandler.ashx.cs">
+      <DependentUpon>RepairHandler.ashx</DependentUpon>
+    </Compile>
     <Compile Include="TripHandler.ashx.cs">
       <DependentUpon>TripHandler.ashx</DependentUpon>
     </Compile>
@@ -89,6 +92,7 @@
     <Content Include="TripHandler.ashx" />
     <Content Include="CouponHandler.ashx" />
     <Content Include="BikeHandler.ashx" />
+    <Content Include="RepairHandler.ashx" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
       <SubType>Designer</SubType>

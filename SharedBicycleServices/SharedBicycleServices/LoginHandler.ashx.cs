@@ -26,6 +26,11 @@ namespace SharedBicycleServices
         public List<Model> modelList { get; set; }
         public List<State> stateList { get; set; }
         public List<Trip> tripList { get; set; }
+        public List<Identity> identityList { get; set; }
+        public List<Repair> repairList { get; set; }
+        public List<Detailed> detailedList { get; set; }
+        public List<Illegal> illegalList { get; set; }
+        public List<CreditScore> creditScoreList { get; set; }
     }
 
     public class LoginHandler : IHttpHandler
