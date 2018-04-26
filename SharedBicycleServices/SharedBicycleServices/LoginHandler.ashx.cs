@@ -31,6 +31,8 @@ namespace SharedBicycleServices
         public List<Detailed> detailedList { get; set; }
         public List<Illegal> illegalList { get; set; }
         public List<CreditScore> creditScoreList { get; set; }
+        public String couponCount { get; set; }
+        public List<Profit> profitList { get; set; }
     }
 
     public class LoginHandler : IHttpHandler

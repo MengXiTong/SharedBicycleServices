@@ -47,22 +47,40 @@ namespace SharedBicycleServices
                     String userID = context.Request.QueryString["UserID"];
                     cmd.CommandText = "delete from tblCoupon where UserID='" + userID + "' and ExpirationDate<'" + DateTime.Now.ToString() + "'";
                     cmd.ExecuteNonQuery();
-                    cmd.CommandText = "select CouponID,UserID,tblCoupon.CouponTypeID,ExpirationDate,CouponTypeName,FavorablePrice from tblCoupon,tblCouponType where tblCoupon.CouponTypeID=tblCouponType.CouponTypeID and UserID='" + userID + "' order by CouponID DESC";
-                    SqlDataReader dr = cmd.ExecuteReader();
-                    List<Coupon> couponList = new List<Coupon>();
-                    while (dr.Read())
+                    String type = context.Request.QueryString["Type"];
+                    if (type == "count")
                     {
-                        Coupon coupon = new Coupon();
-                        coupon.CouponID = dr["CouponID"].ToString();
-                        coupon.UserID = dr["UserID"].ToString();
-                        coupon.CouponTypeID = dr["CouponTypeID"].ToString();
-                        coupon.ExpirationDate = (Convert.ToDateTime(dr["ExpirationDate"].ToString())).ToString("yyyy-MM-dd");
-                        coupon.CouponTypeName = dr["CouponTypeName"].ToString();
-                        coupon.FavorablePrice = dr["FavorablePrice"].ToString();
-                        couponList.Add(coupon);
+                        cmd.CommandText = "select count(*) from tblCoupon where UserID='" + userID + "'";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        if (dr.Read())
+                        {
+                            result.couponCount = dr[0].ToString();
+                            result.status = true;
+                        }
+                        else{
+                            result.message = "未查到优惠券数量";
+                        }
+                        dr.Close();
                     }
-                    dr.Close();
-                    result.couponList = couponList;
+                    else if (type == "detail")
+                    {
+                        cmd.CommandText = "select CouponID,UserID,tblCoupon.CouponTypeID,ExpirationDate,CouponTypeName,FavorablePrice from tblCoupon,tblCouponType where tblCoupon.CouponTypeID=tblCouponType.CouponTypeID and UserID='" + userID + "' order by CouponID DESC";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        List<Coupon> couponList = new List<Coupon>();
+                        while (dr.Read())
+                        {
+                            Coupon coupon = new Coupon();
+                            coupon.CouponID = dr["CouponID"].ToString();
+                            coupon.UserID = dr["UserID"].ToString();
+                            coupon.CouponTypeID = dr["CouponTypeID"].ToString();
+                            coupon.ExpirationDate = (Convert.ToDateTime(dr["ExpirationDate"].ToString())).ToString("yyyy-MM-dd");
+                            coupon.CouponTypeName = dr["CouponTypeName"].ToString();
+                            coupon.FavorablePrice = dr["FavorablePrice"].ToString();
+                            couponList.Add(coupon);
+                        }
+                        dr.Close();
+                        result.couponList = couponList;
+                    }
                 }
                 if (context.Request.HttpMethod.ToUpper() == "POST")
                 {

@@ -69,6 +69,12 @@ namespace SharedBicycleServices
         public User user { get; set; }
     }
 
+    class Profit
+    {
+        public String typeName { get; set; }
+        public String value { get; set; }
+    }
+
     public class UserHandler : IHttpHandler
     {
 
@@ -205,6 +211,37 @@ namespace SharedBicycleServices
                         result.status = true;
                         dr.Close();
                     }
+                    else if (type == "profit")
+                    {
+                        String startTime = context.Request.QueryString["StartTime"];
+                        String endTime = context.Request.QueryString["EndTime"];
+                        DateTime endDate = Convert.ToDateTime(endTime);
+                        endDate = endDate.AddDays(1);
+                        endTime = endDate.ToString("yyyy-MM-dd");
+                        cmd.CommandText = "select DetailedTypeName,sum(Sum) from (select tblDetailed.DetailedTypeID,Sum,DetailedTypeName,UserID,DetailedID,DetailTime from tblDetailType,tblDetailed where tblDetailType.DetailedTypeID=tblDetailed.DetailedTypeID)a where DetailTime between '" + startTime + "' and '" + endTime + "' group by DetailedTypeName";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        List<Profit> profitList = new List<Profit>();
+                        if (dr.Read())
+                        {
+                            Profit profit = new Profit();
+                            profit.typeName = dr[0].ToString();
+                            profit.value = dr[1].ToString();
+                            profitList.Add(profit);
+                            result.status = true;
+                        }
+                        else
+                        {
+                            result.message = "未查到该时间段的信息";
+                        }
+                        while (dr.Read())
+                        {
+                            Profit profit = new Profit();
+                            profit.typeName = dr[0].ToString();
+                            profit.value = dr[1].ToString();
+                            profitList.Add(profit);
+                        }
+                        result.profitList = profitList;
+                    }
                     context.Response.Write(JsonConvert.SerializeObject(result));
                 }
                 if (context.Request.HttpMethod.ToUpper() == "POST")
@@ -319,6 +356,32 @@ namespace SharedBicycleServices
                             cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + param.user.UserID + "','" + 3 + "','" + param.user.Deposit + "','" + DateTime.Now.ToString() + "')";
                             cmd.ExecuteNonQuery();
                             result.status = true;
+                            break;
+                        case "backDeposit":
+                            cmd.CommandText = "select Deposit from tblUser where UserID='" + param.user.UserID + "'";
+                            SqlDataReader dr = cmd.ExecuteReader();
+                            if (dr.Read())
+                            {
+                                float deposit = float.Parse(dr["Deposit"].ToString());
+                                dr.Close();
+                                if (deposit > 0)
+                                {
+                                    cmd.CommandText = "update tblUser set Deposit = '" + 0 + "' where UserID = '" + param.user.UserID + "'";
+                                    cmd.ExecuteNonQuery();
+                                    cmd.CommandText = "insert into tblDetailed(UserID,DetailedTypeID,Sum,DetailTime) values('" + param.user.UserID + "','" + 4 + "','" + deposit + "','" + DateTime.Now.ToString() + "')";
+                                    cmd.ExecuteNonQuery();
+                                    result.status = true;
+                                }
+                                else
+                                {
+                                    result.message = "该用户无押金可退";
+                                }
+                            }
+                            else
+                            {
+                                dr.Close();
+                                result.message = "查不到用户信息";
+                            }
                             break;
                     }
                     context.Response.Write(JsonConvert.SerializeObject(result));
