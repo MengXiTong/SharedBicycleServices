@@ -121,6 +121,27 @@ namespace SharedBicycleServices
                         }
                         dr.Close();
                     }
+                    else if (type == "lastUser")
+                    {
+                        String bikeID = context.Request.QueryString["BikeID"];
+                        String time = context.Request.QueryString["Time"];
+                        cmd.CommandText = "select * from tblTrip where BikeID='"+bikeID+"'  and StartTime<='"+time+"' order by TripID desc";
+                        SqlDataReader dr = cmd.ExecuteReader();
+                        if (dr.Read())
+                        {
+                            Trip trip = new Trip();
+                            trip.TripID = dr["TripID"].ToString();
+                            trip.UserID = dr["UserID"].ToString();
+                            trip.BikeID = dr["BikeID"].ToString();
+                            result.trip = trip;
+                            result.status = true;
+                        }
+                        else
+                        {
+                            result.message = "该时间点之前该车未被使用";
+                        }
+                        dr.Close();
+                    }
                     context.Response.Write(JsonConvert.SerializeObject(result));
                 }
                 if (context.Request.HttpMethod.ToUpper() == "POST")
