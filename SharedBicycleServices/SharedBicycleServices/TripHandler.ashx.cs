@@ -282,7 +282,7 @@ namespace SharedBicycleServices
                                 float consume = float.Parse(tripParam.trip.Consume);
                                 if (consume > 0)
                                 {
-                                    cmd.CommandText = "update tblUser set Balance = Balance - " + consume + " where UserID = '" + tripParam.trip.UserID + "'";
+                                    cmd.CommandText = "update tblUser set Balance = Balance - " + consume + ",CreditScore = CreditScore+1 where UserID = '" + tripParam.trip.UserID + "'";
                                     cmd.ExecuteNonQuery();
                                     cmd.CommandText = "insert into tblCreditScore(CreditScore,Explain,Time,UserID) values('1','完成骑行','" + DateTime.Now.ToString() + "','" + tripParam.trip.UserID + "')";
                                     cmd.ExecuteNonQuery();
