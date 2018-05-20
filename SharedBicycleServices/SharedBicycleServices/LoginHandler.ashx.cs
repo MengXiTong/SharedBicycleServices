@@ -35,6 +35,12 @@ namespace SharedBicycleServices
         public List<Profit> profitList { get; set; }
     }
 
+    class Config
+    {
+        public const String strCon = "server=localhost;database=SharedBicycle;user id=sa;password=123456";
+        //public const String strCon = "server=localhost;database=SharedBicycle;user id=sa;password=YuJian228";
+    }
+
     public class LoginHandler : IHttpHandler
     {
 
@@ -45,7 +51,7 @@ namespace SharedBicycleServices
             result.status = false;
             try
             {
-                SqlConnection con = new SqlConnection("server=localhost;database=SharedBicycle;user id=sa;password=123456");
+                SqlConnection con = new SqlConnection(Config.strCon);
                 SqlCommand cmd = new SqlCommand();
                 cmd.Connection = con;
                 con.Open();

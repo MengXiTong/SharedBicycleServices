@@ -85,7 +85,7 @@ namespace SharedBicycleServices
             result.status = false;
             try
             {
-                SqlConnection con = new SqlConnection("server=localhost;database=SharedBicycle;user id=sa;password=123456");
+                SqlConnection con = new SqlConnection(Config.strCon);
                 SqlCommand cmd = new SqlCommand();
                 cmd.Connection = con;
                 con.Open();
@@ -279,6 +279,7 @@ namespace SharedBicycleServices
                         if (Base64StringToImage(user.Photo, user.UserID))
                         {
                             cmd.Parameters.AddWithValue("@Photo", @"d:\image\" + user.UserID + ".jpg");
+                            //cmd.Parameters.AddWithValue("@Photo", @"c:\image\" + user.UserID + ".jpg");
                         }
                     }
                     cmd.ExecuteNonQuery();
@@ -426,6 +427,7 @@ namespace SharedBicycleServices
                 MemoryStream ms = new MemoryStream(arr);
                 Bitmap bmp = new Bitmap(ms);
                 bmp.Save(@"d:\image\" + userId + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+                //bmp.Save(@"c:\image\" + userId + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
                 ms.Close();
                 return true;
             }
