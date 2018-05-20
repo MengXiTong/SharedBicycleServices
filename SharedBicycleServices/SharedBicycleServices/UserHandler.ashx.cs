@@ -278,8 +278,7 @@ namespace SharedBicycleServices
                     {
                         if (Base64StringToImage(user.Photo, user.UserID))
                         {
-                            cmd.Parameters.AddWithValue("@Photo", @"d:\image\" + user.UserID + ".jpg");
-                            //cmd.Parameters.AddWithValue("@Photo", @"c:\image\" + user.UserID + ".jpg");
+                            cmd.Parameters.AddWithValue("@Photo", Config.strSite + user.UserID + ".jpg");
                         }
                     }
                     cmd.ExecuteNonQuery();
@@ -297,7 +296,7 @@ namespace SharedBicycleServices
                         case "photo":
                             if (Base64StringToImage(param.user.Photo, param.user.UserID))
                             {
-                                cmd.CommandText = "update tblUser set Photo='" + @"d:\image\" + param.user.UserID + ".jpg' where UserID='" + param.user.UserID + "'";
+                                cmd.CommandText = "update tblUser set Photo='" + Config.strSite + param.user.UserID + ".jpg' where UserID='" + param.user.UserID + "'";
                                 cmd.ExecuteNonQuery();
                                 result.status = true;
                             }
@@ -426,8 +425,7 @@ namespace SharedBicycleServices
                 byte[] arr = Convert.FromBase64String(strbase64);
                 MemoryStream ms = new MemoryStream(arr);
                 Bitmap bmp = new Bitmap(ms);
-                bmp.Save(@"d:\image\" + userId + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
-                //bmp.Save(@"c:\image\" + userId + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+                bmp.Save(Config.strSite + userId + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
                 ms.Close();
                 return true;
             }

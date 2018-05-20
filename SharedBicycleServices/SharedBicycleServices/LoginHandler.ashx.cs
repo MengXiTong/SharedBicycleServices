@@ -39,6 +39,8 @@ namespace SharedBicycleServices
     {
         public const String strCon = "server=localhost;database=SharedBicycle;user id=sa;password=123456";
         //public const String strCon = "server=localhost;database=SharedBicycle;user id=sa;password=YuJian228";
+        public const String strSite = @"d:\image\";
+        //public const String strSite = @"c:\image\";
     }
 
     public class LoginHandler : IHttpHandler
